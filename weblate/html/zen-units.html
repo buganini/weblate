@@ -9,7 +9,7 @@
 <td>
 {% get_location_links item.unit %}
 {% if item.unit.context %}
-{% format_translation item.unit.context search_match=search_query %}
+{% format_translation item.unit.context|translationunit_context search_match=search_query %}
 {% endif %}
 </td>
 <td>

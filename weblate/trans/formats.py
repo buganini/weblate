@@ -32,7 +32,7 @@ from translate.storage.ts2 import tsunit
 from translate.storage.jsonl10n import JsonUnit
 from translate.storage import mo
 from translate.storage import factory
-from weblate.trans.util import get_string, join_plural, add_configuration_error
+from weblate.trans.util import get_string, join_multistring, add_configuration_error
 from translate.misc import quote
 from weblate.trans.util import get_clean_env
 import weblate
@@ -180,7 +180,7 @@ class FileUnit(object):
                 and self.mainunit.hasplural()):
             # Need to apply special magic for plurals here
             # as there is no singlular/plural in the source string
-            return join_plural([
+            return join_multistring([
                 self.unit.source,
                 self.unit.source,
             ])

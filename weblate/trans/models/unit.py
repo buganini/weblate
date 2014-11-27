@@ -35,7 +35,7 @@ from weblate.accounts.models import (
 )
 from weblate.trans.filelock import FileLockException
 from weblate.trans.util import (
-    is_plural, split_plural, join_plural, get_distinct_translations
+    is_plural, is_array, split_multistring, join_multistring, get_distinct_translations
 )
 import weblate
 
@@ -463,13 +463,13 @@ class Unit(models.Model):
         """
         Checks whether message is plural.
         """
-        return is_plural(self.source)
+        return is_plural(self.context)
 
     def get_source_plurals(self):
         """
         Returns source plurals in array.
         """
-        return split_plural(self.source)
+        return split_multistring(self.source)
 
     def get_target_plurals(self):
         """
@@ -480,7 +480,7 @@ class Unit(models.Model):
             return [self.target]
 
         # Split plurals
-        ret = split_plural(self.target)
+        ret = split_multistring(self.target)
 
         # Check if we have expected number of them
         plurals = self.translation.language.nplurals
@@ -494,6 +494,36 @@ class Unit(models.Model):
         # Delete extra plurals
         while len(ret) > plurals:
             del ret[-1]
+
+        return ret
+
+    def is_array(self):
+        """
+        Checks whether message is array.
+        """
+        return is_array(self.context)
+
+    def get_source_array(self):
+        """
+        Returns source array in array.
+        """
+        return split_multistring(self.source)
+
+    def get_target_array(self):
+        """
+        Returns target array in array.
+        """
+        # Is this plural?
+        if not self.is_array():
+            return [self.target]
+
+        srcn = len(self.get_source_array())
+
+        # Split array
+        ret = split_multistring(self.target)
+
+        while len(ret) < srcn:
+            ret.append("")
 
         return ret
 
@@ -961,7 +991,7 @@ class Unit(models.Model):
         Stores new translation of a unit.
         """
         # Update unit and save it
-        self.target = join_plural(new_target)
+        self.target = join_multistring(new_target)
         self.fuzzy = new_fuzzy
         saved = self.save_backend(request)
 

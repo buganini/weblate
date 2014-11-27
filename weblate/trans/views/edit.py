@@ -38,7 +38,7 @@ from weblate.trans.forms import (
 )
 from weblate.trans.views.helper import get_translation
 from weblate.trans.checks import CHECKS
-from weblate.trans.util import join_plural
+from weblate.trans.util import join_multistring
 
 
 def cleanup_session(session):
@@ -206,7 +206,7 @@ def perform_suggestion(unit, form, request):
     # Create the suggestion
     Suggestion.objects.add(
         unit,
-        join_plural(form.cleaned_data['target']),
+        join_multistring(form.cleaned_data['target']),
         request,
     )
     return True

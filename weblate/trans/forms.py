@@ -32,6 +32,7 @@ from weblate.trans.models import Unit
 from weblate.trans.models.source import PRIORITY_CHOICES
 from weblate.trans.checks import CHECKS
 from weblate.trans.specialchars import get_special_chars
+from weblate.trans.util import (is_plural, is_array)
 from urllib import urlencode
 import weblate
 
@@ -77,7 +78,7 @@ def escape_newline(value):
     return value
 
 
-class PluralTextarea(forms.Textarea):
+class TranslationTextarea(forms.Textarea):
     '''
     Text area extension which possibly handles plurals.
     '''
@@ -149,11 +150,20 @@ class PluralTextarea(forms.Textarea):
 
         return TOOLBAR_TEMPLATE.format(u'\n'.join(groups))
 
-    def render(self, name, value, attrs=None):
+    def render(self, name, unit, attrs=None):
         '''
-        Renders all textareas with correct plural labels.
+        Renders all textareas with correct labels.
         '''
-        lang, value, checksum = value
+        lang = unit.translation.language
+        context = unit.context
+        checksum = unit.checksum
+        if is_plural(context):
+            value = unit.get_target_plurals()
+        elif is_array(context):
+            value = unit.get_target_array()
+        else:
+            value = unit.target
+
         tabindex = self.attrs['tabindex']
 
         # Need to add extra class
@@ -173,16 +183,19 @@ class PluralTextarea(forms.Textarea):
             attrs['tabindex'] = tabindex + idx
 
             # Render textare
-            textarea = super(PluralTextarea, self).render(
+            textarea = super(TranslationTextarea, self).render(
                 fieldname,
                 escape_newline(val),
                 attrs
             )
             # Label for plural
-            if len(value) == 1:
-                label = ugettext('Translation')
-            else:
+            if is_plural(context):
                 label = lang.get_plural_label(idx)
+            elif is_array(context):
+                label = "[{0}]".format(idx)
+            else:
+                label = ugettext('Translation')
+
             ret.append(
                 EDITOR_TEMPLATE.format(
                     self.get_toolbar(lang, fieldid, checksum),
@@ -194,7 +207,7 @@ class PluralTextarea(forms.Textarea):
 
         # Show plural equation for more strings
         pluralmsg = ''
-        if len(value) > 1:
+        if is_plural(context):
             pluralinfo = u'<abbr title="{0}">{1}</abbr>: {2}'.format(
                 ugettext(
                     'This equation identifies which plural form '
@@ -226,23 +239,23 @@ class PluralTextarea(forms.Textarea):
         return ret
 
 
-class PluralField(forms.CharField):
+class TranslationField(forms.CharField):
     '''
-    Renderer for plural field. The only difference
+    Renderer for translation field. The only difference
     from CharField is that it does not force value to be
     string.
     '''
     def __init__(self, max_length=None, min_length=None, *args, **kwargs):
         kwargs['label'] = ''
-        super(PluralField, self).__init__(
+        super(TranslationField, self).__init__(
             *args,
-            widget=PluralTextarea,
+            widget=TranslationTextarea,
             **kwargs
         )
 
     def to_python(self, value):
         '''
-        Returns list or string as returned by PluralTextarea.
+        Returns list or string as returned by TranslationTextarea.
         '''
         return value
 
@@ -284,7 +297,7 @@ class TranslationForm(ChecksumForm):
     '''
     Form used for translation of single string.
     '''
-    target = PluralField(
+    target = TranslationField(
         required=False,
     )
     fuzzy = forms.BooleanField(
@@ -297,11 +310,7 @@ class TranslationForm(ChecksumForm):
         if unit is not None:
             kwargs['initial'] = {
                 'checksum': unit.checksum,
-                'target': (
-                    unit.translation.language,
-                    unit.get_target_plurals(),
-                    unit.checksum
-                ),
+                'target': unit,
                 'fuzzy': unit.fuzzy,
             }
             kwargs['auto_id'] = 'id_{0}_%s'.format(unit.checksum)

@@ -27,23 +27,37 @@ from importlib import import_module
 import os
 import urlparse
 
-PLURAL_SEPARATOR = '\x1e\x1e'
+MULTISTRING_SEPARATOR = '\x1e\x1e'
+TYPE_SEPARATOR = '\x1f\x1f'
 
 
-def is_plural(text):
+def is_plural(context):
     '''
     Checks whether string is plural form.
     '''
-    return text.find(PLURAL_SEPARATOR) != -1
+    ts = context.split(TYPE_SEPARATOR)
+    if len(ts) == 1:
+        return False
+    if ts[0].startswith("plurals"):
+        return True
+    return False
 
+def is_array(context):
+    '''
+    Checks whether string is array form.
+    '''
+    ts = context.split(TYPE_SEPARATOR)
+    if len(ts) == 1:
+        return False
+    if ts[0] == "array":
+        return True
+    return False
 
-def split_plural(text):
-    return text.split(PLURAL_SEPARATOR)
+def split_multistring(text):
+    return text.split(MULTISTRING_SEPARATOR)
 
-
-def join_plural(text):
-    return PLURAL_SEPARATOR.join(text)
-
+def join_multistring(text):
+    return MULTISTRING_SEPARATOR.join(text)
 
 def get_string(text):
     '''
@@ -53,7 +67,7 @@ def get_string(text):
     if text is None:
         return ''
     if hasattr(text, 'strings'):
-        return join_plural(text.strings)
+        return join_multistring(text.strings)
     return text
 
 

@@ -40,7 +40,7 @@ from weblate.trans.checks import CHECKS
 from weblate.trans.models.unit import Unit
 from weblate.trans.models.unitdata import Suggestion
 from weblate.trans.util import (
-    get_site_url, translation_percent, split_plural,
+    get_site_url, translation_percent, split_multistring,
 )
 from weblate.accounts.avatar import get_user_display
 from weblate.trans.mixins import URLMixin, PercentMixin, LoggerMixin
@@ -837,7 +837,13 @@ class Translation(models.Model, URLMixin, PercentMixin, LoggerMixin):
         # Save with lock acquired
         with self.subproject.repository_lock:
 
-            src = unit.get_source_plurals()[0]
+            if unit.is_plural():
+                src = unit.get_source_plurals()[0]
+            elif unit.is_array():
+                src = unit.get_source_array()[0]
+            else:
+                src = unit.source
+
             add = False
 
             pounit, add = self.store.find_unit(unit.context, src)
@@ -855,6 +861,8 @@ class Translation(models.Model, URLMixin, PercentMixin, LoggerMixin):
             # Store translations
             if unit.is_plural():
                 pounit.set_target(unit.get_target_plurals())
+            elif unit.is_array():
+                pounit.set_target(unit.get_target_array())
             else:
                 pounit.set_target(unit.target)
 
@@ -1053,7 +1061,7 @@ class Translation(models.Model, URLMixin, PercentMixin, LoggerMixin):
 
             unit.translate(
                 request,
-                split_plural(unit2.get_target()),
+                split_multistring(unit2.get_target()),
                 add_fuzzy or unit2.is_fuzzy()
             )
 

@@ -56,19 +56,19 @@
     {% for unit in secondary %}
     <div class="form-group">
     <label>{{ unit.translation.language }}</label>
-    {% format_translation unit.target unit.translation.language %}
+    {% format_translation unit.context unit.target unit.translation.language %}
     </div>
     {% endfor %}
     {% endif %}
     {% if unit.previous_source and unit.fuzzy %}
     <div class="form-group">
     <label>{% trans "Source change" %}</label>
-    {% format_translation unit.source unit.translation.language unit.previous_source %}
+    {% format_translation unit.context unit.source unit.translation.language unit.previous_source %}
     </div>
     {% endif %}
     <div class="form-group">
     <label>{% trans "Source" %}</label>
-    {% format_translation unit.source search_match=search_query %}
+    {% format_translation unit.context unit.source search_match=search_query %}
     </div>
     {{ form|crispy }}
   </div>
@@ -140,8 +140,8 @@
 {% for item in unit.nearby %}
 <tr {% if unit.position == item.position %}class="current_translation"{% endif %}>
 <td class="number"><a href="{{ item.get_absolute_url }}">{{ item.position }}</a></td>
-<td><a href="{{ item.get_absolute_url }}">{% format_translation item.source %}</a></td>
-<td><a href="{{ item.get_absolute_url }}">{% format_translation item.target unit.translation.language %}</a></td>
+<td><a href="{{ item.get_absolute_url }}">{% format_translation item.context item.source %}</a></td>
+<td><a href="{{ item.get_absolute_url }}">{% format_translation item.context item.target unit.translation.language %}</a></td>
 <td>{% get_state_flags item %}</td>
 </tr>
 {% endfor %}
@@ -167,7 +167,7 @@
 {% trans "Anonymous user has suggested" %}
 {% endif %}
 </strong></h5>
-{% format_translation suggestion.target unit.translation.language unit.target %}
+{% format_translation suggestion.context suggestion.target unit.translation.language unit.target %}
 {% if unit.can_vote_suggestions %}
 <p class="help-block">
 {% blocktrans count count=suggestion.get_num_votes %}{{ count }} vote{% plural %}{{ count }} votes{% endblocktrans %}
@@ -208,7 +208,7 @@
     {% for item in others %}
     <tr>
     <td>{{ item.translation.subproject }}</td>
-    <td><a href="{{ item.get_absolute_url }}">{% format_translation item.target item.translation.language unit.target %}</a></td>
+    <td><a href="{{ item.get_absolute_url }}">{% format_translation item.context item.target item.translation.language unit.target %}</a></td>
     <td>{% get_state_flags item %}</td>
     <td>
     {% if perms.trans.save_translation %}
@@ -345,7 +345,7 @@
     {% for item in glossary %}
         <tr>
         <td>{{ item.source }}</td>
-        <td class="target">{% format_translation item.target unit.translation.language simple=True %}</td>
+        <td class="target">{% format_translation unit.context item.target unit.translation.language simple=True %}</td>
         <td>
         {% if perms.trans.save_translation %}
         <a class="copydict btn btn-default btn-xs" title="{% trans "Copy word to translation" %}">{% trans "Copy" %}</a>
@@ -373,7 +373,7 @@
     <th>{% trans "Context" %}</th>
     </tr>
     <tr>
-    <td>{% format_translation unit.context search_match=search_query simple=True %}</td>
+    <td>{% format_translation unit.context unit.context|translationunit_context search_match=search_query simple=True %}</td>
     </tr>
     {% endif %}
     {% if unit.flags %}

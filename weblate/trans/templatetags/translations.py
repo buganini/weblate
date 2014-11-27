@@ -33,7 +33,7 @@ from datetime import date
 import weblate
 
 from weblate.trans.simplediff import html_diff
-from weblate.trans.util import split_plural
+from weblate.trans.util import split_multistring, is_array, is_plural
 from weblate.lang.models import Language
 from weblate.trans.models import Project, SubProject, Dictionary, Advertisement
 from weblate.trans.checks import CHECKS
@@ -77,7 +77,7 @@ def fmt_whitespace(value):
 
 
 @register.inclusion_tag('format-translation.html')
-def format_translation(value, language=None, diff=None, search_match=None,
+def format_translation(context, value, language=None, diff=None, search_match=None,
                        simple=False):
     """
     Nicely formats translation text possibly handling plurals or diff.
@@ -86,25 +86,25 @@ def format_translation(value, language=None, diff=None, search_match=None,
     if language is None:
         language = Language.objects.get_default()
 
-    # Split plurals to separate strings
-    plurals = split_plural(value)
+    # Split multistring to separate strings
+    strings = split_multistring(value)
 
     # Newline concatenator
     newline = u'<span class="hlspace" title="{0}">↵</span><br />'.format(
         _('New line')
     )
 
-    # Split diff plurals
+    # Split diff multistring
     if diff is not None:
-        diff = split_plural(diff)
+        diff = split_multistring(diff)
         # Previous message did not have to be a plural
-        while len(diff) < len(plurals):
+        while len(diff) < len(strings):
             diff.append(diff[0])
 
     # We will collect part for each plural
     parts = []
 
-    for idx, value in enumerate(plurals):
+    for idx, value in enumerate(strings):
 
         # HTML escape
         value = escape(force_unicode(value))
@@ -138,8 +138,10 @@ def format_translation(value, language=None, diff=None, search_match=None,
 
         # Show label for plural (if there are any)
         title = ''
-        if len(plurals) > 1:
+        if is_plural(context):
             title = language.get_plural_label(idx)
+        elif is_array(context):
+            title = "[{0}]".format(idx)
 
         # Join paragraphs
         content = mark_safe(newline.join(paras))
@@ -398,6 +400,14 @@ def naturaltime(value, now=None):
         return naturaltime_past(value, now)
     else:
         return naturaltime_future(value, now)
+
+
+@register.filter
+def translationunit_context(context):
+    context = context.split("\x1f\x1f")
+    if len(context)>1:
+        return context[1]
+    return context[0]
 
 
 @register.simple_tag
