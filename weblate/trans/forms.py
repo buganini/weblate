@@ -162,7 +162,7 @@ class TranslationTextarea(forms.Textarea):
         elif is_array(context):
             value = unit.get_target_array()
         else:
-            value = unit.target
+            value = [unit.target]
 
         tabindex = self.attrs['tabindex']
 
