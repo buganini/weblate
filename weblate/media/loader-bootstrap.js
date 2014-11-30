@@ -95,9 +95,15 @@ function process_machine_translation(data, textStatus, jqXHR) {
     dec_loading();
     if (data.responseStatus == 200) {
         data.translations.forEach(function (el, idx, ar) {
+            if (el.text.indexOf("\u001e\u001e") != -1) {
+              var text_array = el.text.split("\u001e\u001e")
+              if (text_array.length != $('.translation-editor').size()) {
+                return;
+              }
+            }
             var new_row = $('<tr/>').data('quality', el.quality);
             var done = false;
-            new_row.append($('<td/>').attr('class', 'target').attr('lang', data.lang).attr('dir', data.dir).text(el.text));
+            new_row.append($('<td/>').attr('class', 'target').attr('lang', data.lang).attr('dir', data.dir).text(el.text.replace(/\u001e\u001e/g, "\u001e / \u001e")));
             new_row.append($('<td/>').text(el.source));
             new_row.append($('<td/>').text(el.service));
             /* Translators: Verb for copy operation */
@@ -114,8 +120,16 @@ function process_machine_translation(data, textStatus, jqXHR) {
         });
         $('a.copymt').button({text: true, icons: { primary: "ui-icon-copy" }}).click(function () {
             var text = $(this).parent().parent().find('.target').text();
-            $('.translation-editor').val(text).trigger('autosize.resize');
-            $('#id_fuzzy').prop('checked', true);
+            if (text.indexOf("\u001e / \u001e") != -1) {
+              var text_array = text.split("\u001e / \u001e")
+              var translation_editor = $('.translation-editor');
+              for(var i=0;i<text_array.length;i+=1){
+                translation_editor.eq(i).text(text_array[i]);
+              }
+            } else {
+              $('.translation-editor').val(text).trigger('autosize.resize');
+              $('#id_fuzzy').prop('checked', true);
+            }
         });
     } else {
         var msg = interpolate(
